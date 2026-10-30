@@ -43,7 +43,7 @@ int FindDir(const string & path) {
             curr_str_end=find_it;
         }
         string next_dir_name = path.substr(curr_idx,curr_str_end-curr_idx);
-        cerr<<"next_dir_name: "<<next_dir_name<<'\n';
+        // cerr<<"next_dir_name: "<<next_dir_name<<'\n';
         if(next_dir_name==".."){
             int father_pos = v[curr_pos].father;
             if(father_pos<0){
@@ -92,7 +92,7 @@ void cd(){
         return;
     }
     curr_dir = path_pos;
-    cerr<<"curr_dir: "<<curr_dir<<'\n';
+    // cerr<<"curr_dir: "<<curr_dir<<'\n';
 }
 
 void create(){
@@ -187,6 +187,128 @@ void append(){
     v[find_it->second].content=get<string>(v[find_it->second].content)+content;
 }
 
+void cat(){
+    string name;
+    cin>>name;
+
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    Type its_type = v[find_it->second].type;
+    if(its_type!=TXT && its_type!=MD){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    cout<<name<<':';
+    cout<<get<string>(v[find_it->second].content)<<'\n';
+}
+
+void read(){
+    string name;
+    int offset,length;
+    cin>>name>>offset>>length;
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    Type its_type = v[find_it->second].type;
+    if(its_type!=BIN){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    int bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    if(offset+length>bin_size){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    cout<<name<<':';
+    for(int i=offset;i<offset+length;++i){
+        int cur_int = (get<vector<uint8_t>>(v[find_it->second].content))[i];
+        int first = cur_int/16;
+        int second = cur_int%16;
+        if(first<10){
+            cout<<first;
+        }else{
+            cout<<char('A'+int(first-10));
+        }
+        if(second<10){
+            cout<<second<<" ";
+        }else{
+            cout<<char('A'+int(second-10))<<" ";
+        }
+    }
+    cout<<'\n';
+}
+
+void write(){
+    string name;
+    int offset;
+    string hexdata;
+    cin>>name>>offset;
+    getline(cin,hexdata);
+
+    int first_place = hexdata.find('"');
+    int second_place = hexdata.rfind('"');
+    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    hexdata = hexdata.substr(first_place+1,second_place-first_place-1);
+
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    Type its_type = v[find_it->second].type;
+    if(its_type!=BIN){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    int bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    if(bin_size<offset){
+        for(int i=bin_size;i<offset;++i){
+            get<vector<uint8_t>>(v[find_it->second].content).push_back(0);
+        }
+    }
+    bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+
+    int cur_hex=0;
+    int one_finished=1;
+    int hexdata_len=hexdata.length();
+
+    int cur_idx = offset;
+    for(int i=0;i<hexdata_len;++i){
+        int tmp=0;
+        if(hexdata[i]>='0' && hexdata[i]<='9'){
+            tmp = int(hexdata[i]-'0');
+        }else if(hexdata[i]>='A' && hexdata[i]<='F'){
+            tmp = int(hexdata[i]-'A') +10;
+        }else{
+            continue;
+        }
+        if(one_finished){
+            cur_hex+=16*tmp;
+            one_finished=0;
+        }else{
+            cur_hex+=tmp;
+            if(cur_idx<bin_size){
+                get<vector<uint8_t>>(v[find_it->second].content)[cur_idx]=cur_hex;
+            }else{
+                get<vector<uint8_t>>(v[find_it->second].content).push_back(cur_hex);
+            }
+            cur_hex=0;
+            one_finished=1;
+            cur_idx++;
+        }
+    }
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -209,6 +331,12 @@ int main() {
             create();
         }else if(operators=="append"){
             append();
+        }else if(operators=="cat"){
+            cat();
+        }else if(operators=="read"){
+            read();
+        }else if(operators=="write"){
+            write();
         }
     }
 }

@@ -1,0 +1,9 @@
+8
+create bin a.bin "12 34 56 78 9A"
+read a.bin 1 2
+read a.bin 1 4
+read a.bin 1 5
+write a.bin 4 "9B AB"
+read a.bin 1 5
+write a.bin 10 "12 13 14 15 15 15"
+read a.bin 0 16

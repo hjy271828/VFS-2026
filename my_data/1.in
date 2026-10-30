@@ -1,0 +1,12 @@
+11
+mkdir a
+cd a
+create txt a1.txt "hello a1"
+mkdir ab
+cd ..
+cd a
+cat a1.txt
+cd ./././../a/ab
+create md a45.md "hello a45"
+append a45.md " appended"
+cat a45.md
