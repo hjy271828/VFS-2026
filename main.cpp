@@ -23,7 +23,6 @@ int FindDir(const string & path) {
     int length = path.length();
     if(!length){
         return -1;
-        cerr<<"no char in path\n";
     }
     int curr_idx;
     int curr_pos;
@@ -108,6 +107,12 @@ void create(){
         return;
     }
 
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it!=v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
     int first_place = content.find('"');
     int second_place = content.rfind('"');
     if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
@@ -128,13 +133,13 @@ void create(){
     }else {
         new_file.type=BIN;
         int cur_hex=0;
+        int one_finished=1;
         vector<uint8_t> cur_content;
         for(int i=0;i<content_len;++i){
-            int one_finished=1;
             int tmp=0;
             if(content[i]>='0' && content[i]<='9'){
                 tmp = int(content[i]-'0');
-            }else if(content[i]>='A' && content[i]<='Z'){
+            }else if(content[i]>='A' && content[i]<='F'){
                 tmp = int(content[i]-'A') +10;
             }else{
                 continue;
@@ -157,7 +162,29 @@ void create(){
 
 void append(){
     string name;
+    string content;
+    cin>>name;
+    getline(cin,content);
+    int first_place = content.find('"');
+    int second_place = content.rfind('"');
+    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    content = content.substr(first_place+1,second_place-first_place-1);
 
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    Type its_type = v[find_it->second].type;
+    if(its_type!=TXT && its_type!=MD){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    v[find_it->second].content=get<string>(v[find_it->second].content)+content;
 }
 
 int main() {
@@ -181,7 +208,7 @@ int main() {
         }else if(operators=="create"){
             create();
         }else if(operators=="append"){
-        
+            append();
         }
     }
 }
