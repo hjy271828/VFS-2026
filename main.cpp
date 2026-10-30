@@ -101,7 +101,7 @@ void create(){
     string name;
     string content;
     cin>>type>>name>>content;
-    if(type!="MD"&&type!="BIN"&&type!="TXT"){
+    if(type!="md"&&type!="bin"&&type!="txt"){
         cout<<"Invalid operation\n";
         return;
     }
@@ -113,10 +113,10 @@ void create(){
     Entry new_file;
     new_file.father=curr_dir;
     new_file.name=name;
-    if(type=="MD"){
+    if(type=="md"){
         new_file.type=MD;
         new_file.content=string(content.substr(1,content_len-2));
-    }else if(type=="TXT"){
+    }else if(type=="txt"){
         new_file.type=TXT;
         new_file.content=string(content.substr(1,content_len-2));
     }else {
@@ -168,7 +168,7 @@ int main() {
         }else if(operators=="cd"){
             cd();
         }else if(operators=="create"){
-            
+            create();
         }
     }
 }
