@@ -68,6 +68,87 @@ int FindDir(const string & path) {
     return curr_pos;
 }
 
+void mkdir(){
+    string src;
+    cin >> src;
+    auto it = v[curr_dir].children.find(src);
+    if(it!=v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    Entry new_dir;
+    new_dir.type=DIR;
+    new_dir.father=curr_dir;
+    new_dir.name=src;
+    v[curr_dir].children.insert({src,v.size()});
+    v.push_back(new_dir);
+}
+
+void cd(){
+    string path;
+    cin>>path;
+    int path_pos= FindDir(path);
+    if(path_pos==-1){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    curr_dir = path_pos;
+    cerr<<"curr_dir: "<<curr_dir<<'\n';
+}
+
+void create(){
+    string type;
+    string name;
+    string content;
+    cin>>type>>name>>content;
+    if(type!="MD"&&type!="BIN"&&type!="TXT"){
+        cout<<"Invalid operation\n";
+        return;
+    }
+    int content_len =content.length();
+    if(content_len<2 || content[0]!='"' || content[content_len-1]!='"'){
+        cout<<"Invalid operation\n";
+        return;    
+    }
+    Entry new_file;
+    new_file.father=curr_dir;
+    new_file.name=name;
+    if(type=="MD"){
+        new_file.type=MD;
+        new_file.content=string(content.substr(1,content_len-2));
+    }else if(type=="TXT"){
+        new_file.type=TXT;
+        new_file.content=string(content.substr(1,content_len-2));
+    }else {
+        new_file.type=BIN;
+        int cur_hex=0;
+        vector<uint8_t> cur_content;
+        for(int i=1;i<content_len-1;++i){
+            int one_finished=1;
+            int tmp=0;
+            if(content[i]>='0' && content[i]<='9'){
+                tmp = int(content[i]-'0');
+            }else if(content[i]>='A' && content[i]<='Z'){
+                tmp = int(content[i]-'A') +10;
+            }else{
+                continue;
+            }
+            if(one_finished){
+                cur_hex+=16*tmp;
+                one_finished=0;
+            }else{
+                cur_hex+=tmp;
+                cur_content.push_back(cur_hex);
+                cur_hex=0;
+                one_finished=1;
+            }
+        }
+        new_file.content=cur_content;
+    }
+    v[curr_dir].children.insert({name,v.size()});
+    v.push_back(new_file);
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -83,55 +164,11 @@ int main() {
         string operators;
         cin >> operators;
         if (operators == "mkdir") {
-            string src;
-            cin >> src;
-            auto it = v[curr_dir].children.find(src);
-            if(it!=v[curr_dir].children.end()){
-                cout<<"Invalid operation\n";
-                continue;
-            }
-            Entry new_dir;
-            new_dir.type=DIR;
-            new_dir.father=curr_dir;
-            new_dir.name=src;
-            v[curr_dir].children.insert({src,v.size()});
-            v.push_back(new_dir);
+           mkdir();
         }else if(operators=="cd"){
-            string path;
-            cin>>path;
-            int path_pos= FindDir(path);
-            if(path_pos==-1){
-                cout<<"Invalid operation\n";
-                continue;
-            }
-            curr_dir = path_pos;
-            cerr<<"curr_dir: "<<curr_dir<<'\n';
+            cd();
         }else if(operators=="create"){
-            string type;
-            string name;
-            string content;
-            cin>>type>>name>>content;
-            if(type!="MD"&&type!="BIN"&&type!="TXT"){
-                cout<<"Invalid operation\n";
-                continue;
-            }
-            int content_len =content.length();
-            if(content_len<2 || content[0]!='"' || content[content_len]!='"'){
-                cout<<"Invalid operation\n";
-                continue;    
-            }
-            Entry new_file;
-            new_file.father=curr_dir;
-            new_file.name=name;
-            if(type=="MD"){
-                new_file.type=MD;
-                new_file.content=content.substr(1,n-2);
-            }else if(type=="TXT"){
-                new_file.type=TXT;
-                new_file.content=content.substr(1,n-2);
-            }else {
-
-            }
+            
         }
     }
 }
