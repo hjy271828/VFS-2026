@@ -436,7 +436,7 @@ void top(){
         }else if(v[e].type==BIN){
             tmp.size = (std::get<std::vector<uint8_t>>(v[e].content)).size();
         }else if(v[e].type==DIR){
-            tmp.size =0;
+            continue;
         }
         s.insert(tmp);
     }
