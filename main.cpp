@@ -4,8 +4,11 @@
 #include <optional>
 #include <map>
 #include <vector>
+#include <set>
+#include <stack>
 
 enum Type { TXT, MD, BIN, DIR };
+
 struct Entry {
     std::string name;
     Type type;
@@ -17,6 +20,30 @@ struct Entry {
 
 std::vector<Entry> v;
 int curr_dir;
+
+struct idx_and_size{
+    int idx;
+    int size;
+};
+struct CompareSize{
+    bool operator()(const idx_and_size &i1,const idx_and_size &i2) const{
+       if(i1.size!=i2.size){
+        return i1.size>i2.size;
+       }else {
+        return v[i1.idx].name < v[i2.idx].name;
+       }
+    }
+};
+
+enum Undoable_Type {MKDIR,CREATE,APPEND,CD,WRITE,RM};
+struct undoable_item{
+    Undoable_Type type;
+    int index;
+    std::variant<std::string,std::vector<uint8_t>> str_or_byte;
+};
+
+std::stack<undoable_item> undoable_history;
+
 int FindDir(const std::string & path) {
     int length = path.length();
     if(!length){
@@ -79,6 +106,11 @@ void mkdir(){
     new_dir.name=src;
     v[curr_dir].children.insert({src,v.size()});
     v.push_back(new_dir);
+
+    undoable_item new_item;
+    new_item.type=MKDIR;
+    new_item.index=v.size()-1;
+    undoable_history.push(new_item);
 }
 
 void cd(){
@@ -89,6 +121,12 @@ void cd(){
         std::cout<<"Invalid operation\n";
         return;
     }
+
+    undoable_item new_item;
+    new_item.type=CD;
+    new_item.index=curr_dir;
+    undoable_history.push(new_item);
+
     curr_dir = path_pos;
     // cerr<<"curr_dir: "<<curr_dir<<'\n';
 }
@@ -156,6 +194,11 @@ void create(){
     }
     v[curr_dir].children.insert({name,v.size()});
     v.push_back(new_file);
+
+    undoable_item new_item;
+    new_item.type=CREATE;
+    new_item.index=v.size()-1;
+    undoable_history.push(new_item);
 }
 
 void append(){
@@ -181,6 +224,12 @@ void append(){
         std::cout<<"Invalid operation\n";
         return;
     }
+
+    undoable_item new_item;
+    new_item.type=APPEND;
+    new_item.index=find_it->second;
+    new_item.str_or_byte=std::get<std::string>(v[find_it->second].content);
+    undoable_history.push(new_item);
 
     v[find_it->second].content=std::get<std::string>(v[find_it->second].content)+content;
 }
@@ -268,6 +317,12 @@ void write(){
         return;
     }
 
+    undoable_item new_item;
+    new_item.type=WRITE;
+    new_item.index=find_it->second;
+    new_item.str_or_byte=std::get<std::vector<uint8_t>>(v[find_it->second].content);
+    undoable_history.push(new_item);
+
     int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     if(bin_size<offset){
         for(int i=bin_size;i<offset;++i){
@@ -329,6 +384,11 @@ void rm(){
         return;
     }
 
+    undoable_item new_item;
+    new_item.index=find_it->second;
+    new_item.type=RM;
+    undoable_history.push(new_item);
+
     v[find_it->second].deleted=true;
     v[curr_dir].children.erase(find_it);    
 }
@@ -360,6 +420,60 @@ void stat(){
         size =0;
     }
     std::cout<<size<<'\n';
+}
+
+void top(){
+    int k;
+    std::cin>>k;
+    std::set<idx_and_size,CompareSize> s;
+    for(auto [name,e]: v[curr_dir].children){
+        idx_and_size tmp;
+        tmp.idx=e;
+        if(v[e].type==TXT){
+            tmp.size = (std::get<std::string>(v[e].content)).length();
+        }else if(v[e].type==MD){
+            tmp.size = (std::get<std::string>(v[e].content)).length();
+        }else if(v[e].type==BIN){
+            tmp.size = (std::get<std::vector<uint8_t>>(v[e].content)).size();
+        }else if(v[e].type==DIR){
+            tmp.size =0;
+        }
+        s.insert(tmp);
+    }
+    int cur_top_cnt=0;
+    for(auto it = s.begin();it!=s.end() && cur_top_cnt<k;++it){
+        std::cout<<v[it->idx].name<<':'<<(it->size)<<'\n';
+        cur_top_cnt++;
+    }
+}
+
+void undo(){
+    if(undoable_history.empty()){
+        std::cout<<"Invalid operation\n";
+        return;
+    }
+    undoable_item cur_item = undoable_history.top();
+    undoable_history.pop();
+    Undoable_Type cur_type = cur_item.type;
+    int cur_idx = cur_item.index;
+    int cur_father = v[cur_idx].father;
+    std::string cur_name = v[cur_idx].name;
+    if(cur_type==MKDIR){
+        v[cur_idx].deleted=true;
+        v[cur_father].children.erase(cur_name);
+    }else if(cur_type==CREATE){
+        v[cur_idx].deleted=true;
+        v[cur_father].children.erase(cur_name);
+    }else if(cur_type==APPEND){
+        v[cur_idx].content = cur_item.str_or_byte;
+    }else if(cur_type==CD){
+        curr_dir=cur_idx;
+    }else if(cur_type==WRITE){
+        v[cur_idx].content=cur_item.str_or_byte;
+    }else if(cur_type==RM){
+        v[cur_idx].deleted=false;
+        v[cur_father].children.insert({cur_name,cur_idx});
+    }
 }
 
 int main() {
@@ -396,6 +510,10 @@ int main() {
             rm();
         }else if(operators=="stat"){
             stat();
+        }else if(operators=="top"){
+            top();
+        }else if(operators=="undo"){
+            undo();
         }
     }
 }
