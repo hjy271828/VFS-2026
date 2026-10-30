@@ -100,30 +100,36 @@ void create(){
     string type;
     string name;
     string content;
-    cin>>type>>name>>content;
+    cin>>type>>name;
+    getline(cin,content);
+
     if(type!="md"&&type!="bin"&&type!="txt"){
         cout<<"Invalid operation\n";
         return;
     }
-    int content_len =content.length();
-    if(content_len<2 || content[0]!='"' || content[content_len-1]!='"'){
+
+    int first_place = content.find('"');
+    int second_place = content.rfind('"');
+    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
         cout<<"Invalid operation\n";
-        return;    
+        return;
     }
+    content = content.substr(first_place+1,second_place-first_place-1);
+    int content_len =content.length();
     Entry new_file;
     new_file.father=curr_dir;
     new_file.name=name;
     if(type=="md"){
         new_file.type=MD;
-        new_file.content=string(content.substr(1,content_len-2));
+        new_file.content=string(content);
     }else if(type=="txt"){
         new_file.type=TXT;
-        new_file.content=string(content.substr(1,content_len-2));
+        new_file.content=string(content);
     }else {
         new_file.type=BIN;
         int cur_hex=0;
         vector<uint8_t> cur_content;
-        for(int i=1;i<content_len-1;++i){
+        for(int i=0;i<content_len;++i){
             int one_finished=1;
             int tmp=0;
             if(content[i]>='0' && content[i]<='9'){
@@ -149,6 +155,11 @@ void create(){
     v.push_back(new_file);
 }
 
+void append(){
+    string name;
+
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -169,6 +180,8 @@ int main() {
             cd();
         }else if(operators=="create"){
             create();
+        }else if(operators=="append"){
+        
         }
     }
 }
