@@ -309,6 +309,61 @@ void write(){
     }
 }
 
+void ls(){
+    for(auto [name,e]: v[curr_dir].children){
+        bool d = (v[e].type==DIR);
+        cout<<name<<(d?"/":"")<<'\n';
+    }
+}
+
+void rm(){
+    string name;
+    cin>>name;
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    Type its_type = v[find_it->second].type;
+    if(its_type==DIR){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    v[find_it->second].deleted=true;
+    v[curr_dir].children.erase(find_it);    
+}
+
+void stat(){
+    string name;
+    cin>>name;
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        cout<<"Invalid operation\n";
+        return;
+    }
+
+    Type its_type = v[find_it->second].type;
+    cout<<name<<":";
+
+    int size =0;
+    if(its_type==TXT){
+        cout<<"txt:";
+        size = (get<string>(v[find_it->second].content)).length();
+    }else if(its_type==MD){
+        cout<<"md:";
+        size = (get<string>(v[find_it->second].content)).length();
+    }else if(its_type==BIN){
+        cout<<"bin:";
+        size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    }else if(its_type==DIR){
+        cout<<"dir:";
+        size =0;
+    }
+    cout<<size<<'\n';
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -337,6 +392,12 @@ int main() {
             read();
         }else if(operators=="write"){
             write();
+        }else if(operators=="ls"){
+            ls();
+        }else if(operators=="rm"){
+            rm();
+        }else if(operators=="stat"){
+            stat();
         }
     }
 }
