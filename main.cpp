@@ -5,21 +5,19 @@
 #include <map>
 #include <vector>
 
-
-using namespace std;
 enum Type { TXT, MD, BIN, DIR };
 struct Entry {
-    string name;
+    std::string name;
     Type type;
-    variant<string, vector<uint8_t>> content;
-    map<string,int> children;
+    std::variant<std::string, std::vector<uint8_t>> content;
+    std::map<std::string,int> children;
     int father;
     bool deleted=false;
 };
 
-vector<Entry> v;
+std::vector<Entry> v;
 int curr_dir;
-int FindDir(const string & path) {
+int FindDir(const std::string & path) {
     int length = path.length();
     if(!length){
         return -1;
@@ -36,13 +34,13 @@ int FindDir(const string & path) {
     while(curr_idx<length){
         int curr_str_end=length;
         int find_it = path.find('/',curr_idx);
-        if(find_it!=string::npos){
+        if(find_it!=std::string::npos){
             if(find_it==curr_idx){
                 return -1;
             }
             curr_str_end=find_it;
         }
-        string next_dir_name = path.substr(curr_idx,curr_str_end-curr_idx);
+        std::string next_dir_name = path.substr(curr_idx,curr_str_end-curr_idx);
         // cerr<<"next_dir_name: "<<next_dir_name<<'\n';
         if(next_dir_name==".."){
             int father_pos = v[curr_pos].father;
@@ -68,11 +66,11 @@ int FindDir(const string & path) {
 }
 
 void mkdir(){
-    string src;
-    cin >> src;
+    std::string src;
+    std::cin >> src;
     auto it = v[curr_dir].children.find(src);
     if(it!=v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     Entry new_dir;
@@ -84,11 +82,11 @@ void mkdir(){
 }
 
 void cd(){
-    string path;
-    cin>>path;
+    std::string path;
+    std::cin>>path;
     int path_pos= FindDir(path);
     if(path_pos==-1){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     curr_dir = path_pos;
@@ -96,27 +94,27 @@ void cd(){
 }
 
 void create(){
-    string type;
-    string name;
-    string content;
-    cin>>type>>name;
-    getline(cin,content);
+    std::string type;
+    std::string name;
+    std::string content;
+    std::cin>>type>>name;
+    std::getline(std::cin,content);
 
     if(type!="md"&&type!="bin"&&type!="txt"){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
     auto find_it = v[curr_dir].children.find(name);
     if(find_it!=v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
     int first_place = content.find('"');
     int second_place = content.rfind('"');
-    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
-        cout<<"Invalid operation\n";
+    if(first_place==std::string::npos || second_place==std::string::npos || first_place>=second_place){
+        std::cout<<"Invalid operation\n";
         return;
     }
     content = content.substr(first_place+1,second_place-first_place-1);
@@ -126,15 +124,15 @@ void create(){
     new_file.name=name;
     if(type=="md"){
         new_file.type=MD;
-        new_file.content=string(content);
+        new_file.content=std::string(content);
     }else if(type=="txt"){
         new_file.type=TXT;
-        new_file.content=string(content);
+        new_file.content=std::string(content);
     }else {
         new_file.type=BIN;
         int cur_hex=0;
         int one_finished=1;
-        vector<uint8_t> cur_content;
+        std::vector<uint8_t> cur_content;
         for(int i=0;i<content_len;++i){
             int tmp=0;
             if(content[i]>='0' && content[i]<='9'){
@@ -161,122 +159,122 @@ void create(){
 }
 
 void append(){
-    string name;
-    string content;
-    cin>>name;
-    getline(cin,content);
+    std::string name;
+    std::string content;
+    std::cin>>name;
+    std::getline(std::cin,content);
     int first_place = content.find('"');
     int second_place = content.rfind('"');
-    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
-        cout<<"Invalid operation\n";
+    if(first_place==std::string::npos || second_place==std::string::npos || first_place>=second_place){
+        std::cout<<"Invalid operation\n";
         return;
     }
     content = content.substr(first_place+1,second_place-first_place-1);
 
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     Type its_type = v[find_it->second].type;
     if(its_type!=TXT && its_type!=MD){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
-    v[find_it->second].content=get<string>(v[find_it->second].content)+content;
+    v[find_it->second].content=std::get<std::string>(v[find_it->second].content)+content;
 }
 
 void cat(){
-    string name;
-    cin>>name;
+    std::string name;
+    std::cin>>name;
 
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     Type its_type = v[find_it->second].type;
     if(its_type!=TXT && its_type!=MD){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
-    cout<<name<<':';
-    cout<<get<string>(v[find_it->second].content)<<'\n';
+    std::cout<<name<<':';
+    std::cout<<std::get<std::string>(v[find_it->second].content)<<'\n';
 }
 
 void read(){
-    string name;
+    std::string name;
     int offset,length;
-    cin>>name>>offset>>length;
+    std::cin>>name>>offset>>length;
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     Type its_type = v[find_it->second].type;
     if(its_type!=BIN){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
-    int bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     if(offset+length>bin_size){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
-    cout<<name<<':';
+    std::cout<<name<<':';
     for(int i=offset;i<offset+length;++i){
-        int cur_int = (get<vector<uint8_t>>(v[find_it->second].content))[i];
+        int cur_int = (std::get<std::vector<uint8_t>>(v[find_it->second].content))[i];
         int first = cur_int/16;
         int second = cur_int%16;
         if(first<10){
-            cout<<first;
+            std::cout<<first;
         }else{
-            cout<<char('A'+int(first-10));
+            std::cout<<char('A'+int(first-10));
         }
         if(second<10){
-            cout<<second<<" ";
+            std::cout<<second<<" ";
         }else{
-            cout<<char('A'+int(second-10))<<" ";
+            std::cout<<char('A'+int(second-10))<<" ";
         }
     }
-    cout<<'\n';
+    std::cout<<'\n';
 }
 
 void write(){
-    string name;
+    std::string name;
     int offset;
-    string hexdata;
-    cin>>name>>offset;
-    getline(cin,hexdata);
+    std::string hexdata;
+    std::cin>>name>>offset;
+    std::getline(std::cin,hexdata);
 
     int first_place = hexdata.find('"');
     int second_place = hexdata.rfind('"');
-    if(first_place==string::npos || second_place==string::npos || first_place>=second_place){
-        cout<<"Invalid operation\n";
+    if(first_place==std::string::npos || second_place==std::string::npos || first_place>=second_place){
+        std::cout<<"Invalid operation\n";
         return;
     }
     hexdata = hexdata.substr(first_place+1,second_place-first_place-1);
 
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
     Type its_type = v[find_it->second].type;
     if(its_type!=BIN){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
-    int bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     if(bin_size<offset){
         for(int i=bin_size;i<offset;++i){
-            get<vector<uint8_t>>(v[find_it->second].content).push_back(0);
+            std::get<std::vector<uint8_t>>(v[find_it->second].content).push_back(0);
         }
     }
-    bin_size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+    bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
 
     int cur_hex=0;
     int one_finished=1;
@@ -298,9 +296,9 @@ void write(){
         }else{
             cur_hex+=tmp;
             if(cur_idx<bin_size){
-                get<vector<uint8_t>>(v[find_it->second].content)[cur_idx]=cur_hex;
+                std::get<std::vector<uint8_t>>(v[find_it->second].content)[cur_idx]=cur_hex;
             }else{
-                get<vector<uint8_t>>(v[find_it->second].content).push_back(cur_hex);
+                std::get<std::vector<uint8_t>>(v[find_it->second].content).push_back(cur_hex);
             }
             cur_hex=0;
             one_finished=1;
@@ -312,22 +310,22 @@ void write(){
 void ls(){
     for(auto [name,e]: v[curr_dir].children){
         bool d = (v[e].type==DIR);
-        cout<<name<<(d?"/":"")<<'\n';
+        std::cout<<name<<(d?"/":"")<<'\n';
     }
 }
 
 void rm(){
-    string name;
-    cin>>name;
+    std::string name;
+    std::cin>>name;
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
     Type its_type = v[find_it->second].type;
     if(its_type==DIR){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
@@ -336,39 +334,39 @@ void rm(){
 }
 
 void stat(){
-    string name;
-    cin>>name;
+    std::string name;
+    std::cin>>name;
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
-        cout<<"Invalid operation\n";
+        std::cout<<"Invalid operation\n";
         return;
     }
 
     Type its_type = v[find_it->second].type;
-    cout<<name<<":";
+    std::cout<<name<<":";
 
     int size =0;
     if(its_type==TXT){
-        cout<<"txt:";
-        size = (get<string>(v[find_it->second].content)).length();
+        std::cout<<"txt:";
+        size = (std::get<std::string>(v[find_it->second].content)).length();
     }else if(its_type==MD){
-        cout<<"md:";
-        size = (get<string>(v[find_it->second].content)).length();
+        std::cout<<"md:";
+        size = (std::get<std::string>(v[find_it->second].content)).length();
     }else if(its_type==BIN){
-        cout<<"bin:";
-        size = (get<vector<uint8_t>>(v[find_it->second].content)).size();
+        std::cout<<"bin:";
+        size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     }else if(its_type==DIR){
-        cout<<"dir:";
+        std::cout<<"dir:";
         size =0;
     }
-    cout<<size<<'\n';
+    std::cout<<size<<'\n';
 }
 
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     int n;
-    cin >> n;
+    std::cin >> n;
     Entry root;
     root.type=DIR;
     root.name="/";
@@ -376,8 +374,8 @@ int main() {
     v.push_back(root);
     curr_dir=0;
     for (int i = 0; i < n; ++i) {
-        string operators;
-        cin >> operators;
+        std::string operators;
+        std::cin >> operators;
         if (operators == "mkdir") {
            mkdir();
         }else if(operators=="cd"){
