@@ -40,7 +40,9 @@ struct undoable_item{
     Undoable_Type type;
     int index;
     std::vector<uint8_t> former_content;
-    int modify_pos;
+    int modify_pos_start;
+    int modify_pos_end; //not included
+    int former_size;
 };
 
 std::stack<undoable_item> undoable_history;
@@ -229,7 +231,7 @@ void append(){
     undoable_item new_item;
     new_item.type=APPEND;
     new_item.index=find_it->second;
-    new_item.modify_pos=(std::get<std::string>(v[find_it->second].content)).length();
+    new_item.modify_pos_start=(std::get<std::string>(v[find_it->second].content)).length();
     undoable_history.push(new_item);
 
     v[find_it->second].content=std::get<std::string>(v[find_it->second].content)+content;
@@ -321,10 +323,14 @@ void write(){
     undoable_item new_item;
     new_item.type=WRITE;
     new_item.index=find_it->second;
-    new_item.modify_pos = std::min(int(std::get<std::vector<uint8_t>>(v[find_it->second].content).size()),offset);
-    if(int(std::get<std::vector<uint8_t>>(v[find_it->second].content).size())>offset){
-        new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos,std::get<std::vector<uint8_t>>(v[find_it->second].content).end());
+    new_item.former_size=int(std::get<std::vector<uint8_t>>(v[find_it->second].content).size());
+    new_item.modify_pos_start = offset;
+    new_item.modify_pos_end = std::min(new_item.former_size,int(offset+(hexdata.length()+1)/3));
+
+    if(new_item.modify_pos_end>new_item.modify_pos_start && offset<new_item.former_size){
+        new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_start,std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_end);
     }
+
     undoable_history.push(new_item);
 
     int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
@@ -486,14 +492,13 @@ void undo(){
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
     }else if(cur_type==APPEND){
-        v[cur_idx].content = std::get<std::string>(v[cur_idx].content).substr(0,cur_item.modify_pos);
+        v[cur_idx].content = std::get<std::string>(v[cur_idx].content).substr(0,cur_item.modify_pos_start);
     }else if(cur_type==CD){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
-        std::get<std::vector<uint8_t>>(v[cur_idx].content).erase(std::get<std::vector<uint8_t>>(v[cur_idx].content).begin()+cur_item.modify_pos,std::get<std::vector<uint8_t>>(v[cur_idx].content).end());
-        int old_changed_cnt = cur_item.former_content.size();
-        for(int i=0;i<old_changed_cnt;++i){
-            std::get<std::vector<uint8_t>>(v[cur_idx].content).push_back(cur_item.former_content[i]);
+        std::get<std::vector<uint8_t>>(v[cur_idx].content).resize(cur_item.former_size);
+        for(int i=cur_item.modify_pos_start;i<=cur_item.modify_pos_end-1 && i<=cur_item.former_size-1;++i){
+            std::get<std::vector<uint8_t>>(v[cur_idx].content)[i]=cur_item.former_content[i-cur_item.modify_pos_start];
         }
     }else if(cur_type==RM){
         v[cur_idx].deleted=false;
