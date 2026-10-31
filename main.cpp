@@ -494,6 +494,7 @@ int main() {
     std::cin.tie(nullptr);
     int n;
     std::cin >> n;
+    v.reserve(n+1);
     Entry root;
     root.type=DIR;
     root.name="/";
