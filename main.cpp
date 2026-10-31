@@ -234,7 +234,7 @@ void append(){
     new_item.modify_pos_start=(std::get<std::string>(v[find_it->second].content)).length();
     undoable_history.push(new_item);
 
-    v[find_it->second].content=std::get<std::string>(v[find_it->second].content)+content;
+    std::get<std::string>(v[find_it->second].content).append(content);
 }
 
 void cat(){
@@ -492,7 +492,7 @@ void undo(){
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
     }else if(cur_type==APPEND){
-        v[cur_idx].content = std::get<std::string>(v[cur_idx].content).substr(0,cur_item.modify_pos_start);
+        std::get<std::string>(v[cur_idx].content).resize(cur_item.modify_pos_start);
     }else if(cur_type==CD){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
