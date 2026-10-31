@@ -4,9 +4,9 @@
 #include <optional>
 #include <map>
 #include <vector>
-#include <cmath>
 #include <stack>
 #include <algorithm>
+#include <queue>
 
 enum Type { TXT, MD, BIN, DIR };
 
@@ -425,7 +425,7 @@ void stat(){
 void top(){
     int k;
     std::cin>>k;
-    std::vector<idx_and_size> file_vec;
+    std::priority_queue<idx_and_size> k_file;
     for(auto [name,e]: v[curr_dir].children){
         idx_and_size tmp;
         tmp.idx=e;
@@ -438,37 +438,29 @@ void top(){
         }else if(v[e].type==DIR){
             continue;
         }
-        file_vec.push_back(tmp);
+        
+        if(k_file.size()<k){
+            k_file.push(tmp);
+        }else{
+            if(tmp<k_file.top()){
+                k_file.pop();
+                k_file.push(tmp);
+            }else{
+                continue;
+            }
+        }
     }
-    // int cur_top_cnt=0;
-    // for(auto it = s.begin();it!=s.end() && cur_top_cnt<k;++it){
-    //     std::cout<<v[it->idx].name<<':'<<(it->size)<<'\n';
-    //     cur_top_cnt++;
-    // }
-    int file_vec_size = file_vec.size();
-    if(k>log(file_vec_size)/log(2)){
-        sort(file_vec.begin(),file_vec.end());
-        for(int i=0;i<file_vec_size && i<k;++i){
-            std::cout<<v[file_vec[i].idx].name<<':'<<file_vec[i].size<<'\n';
-        }
-    }else{
-        for(int i=0;i<k;++i){
-            bool flg=1;
-            for(int j=0;j<file_vec_size-1;++j){
-                if(file_vec[j]<file_vec[j+1]){
-                    idx_and_size tmp = file_vec[j+1];
-                    file_vec[j+1] = file_vec[j];
-                    file_vec[j] = tmp;
-                    flg=0;
-                }
-            }
-            if(flg){
-                break;
-            }
-        }
-        for(int i=file_vec_size-1;i>=file_vec_size-k;--i){
-            std::cout<<v[file_vec[i].idx].name<<':'<<file_vec[i].size<<'\n';
-        }
+    
+    std::stack<idx_and_size> reversed_k_file;
+    while(!k_file.empty()){
+        idx_and_size cur = k_file.top();
+        k_file.pop();
+        reversed_k_file.push(cur);
+    }
+    while(!reversed_k_file.empty()){
+        idx_and_size cur = reversed_k_file.top();
+        reversed_k_file.pop();
+        std::cout<<v[cur.idx].name<<':'<<cur.size<<'\n';
     }
 }
 
