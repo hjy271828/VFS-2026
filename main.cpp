@@ -39,7 +39,8 @@ enum Undoable_Type {MKDIR,CREATE,APPEND,CD,WRITE,RM};
 struct undoable_item{
     Undoable_Type type;
     int index;
-    std::variant<std::string,std::vector<uint8_t>> str_or_byte;
+    std::variant<std::string,std::vector<uint8_t>> former_content;
+    int former_length;
 };
 
 std::stack<undoable_item> undoable_history;
@@ -228,7 +229,7 @@ void append(){
     undoable_item new_item;
     new_item.type=APPEND;
     new_item.index=find_it->second;
-    new_item.str_or_byte=std::get<std::string>(v[find_it->second].content);
+    new_item.former_length=(std::get<std::string>(v[find_it->second].content)).length();
     undoable_history.push(new_item);
 
     v[find_it->second].content=std::get<std::string>(v[find_it->second].content)+content;
@@ -320,7 +321,7 @@ void write(){
     undoable_item new_item;
     new_item.type=WRITE;
     new_item.index=find_it->second;
-    new_item.str_or_byte=std::get<std::vector<uint8_t>>(v[find_it->second].content);
+    new_item.former_content=std::get<std::vector<uint8_t>>(v[find_it->second].content);
     undoable_history.push(new_item);
 
     int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
@@ -465,11 +466,11 @@ void undo(){
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
     }else if(cur_type==APPEND){
-        v[cur_idx].content = cur_item.str_or_byte;
+        v[cur_idx].content = std::get<std::string>(v[cur_idx].content).substr(0,cur_item.former_length);
     }else if(cur_type==CD){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
-        v[cur_idx].content=cur_item.str_or_byte;
+        v[cur_idx].content=cur_item.former_content;
     }else if(cur_type==RM){
         v[cur_idx].deleted=false;
         v[cur_father].children.insert({cur_name,cur_idx});
