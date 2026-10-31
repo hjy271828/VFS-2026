@@ -23,14 +23,15 @@ struct Entry {
 std::vector<Entry> v;
 int curr_dir;
 
-struct idx_and_size{
+struct idx_name_size{
     int idx;
+    std::string name;
     int size;
-    bool operator<(const idx_and_size &other) const{
+    bool operator<(const idx_name_size &other) const{
        if(size!=other.size){
         return size>other.size;
        }else {
-        return v[idx].name < v[other.idx].name;
+        return name < other.name;
        }
     }
 };
@@ -350,10 +351,14 @@ void write(){
 }
 
 void ls(){
-    for(auto [name,e]: v[curr_dir].children){
+    std::string out;
+    for(const auto & [name,e]: v[curr_dir].children){
         bool d = (v[e].type==DIR);
-        std::cout<<name<<(d?"/":"")<<'\n';
+        out+=name;
+        out+=(d?"/":"");
+        out+='\n';
     }
+    std::cout<<out;
 }
 
 void rm(){
@@ -412,10 +417,11 @@ void stat(){
 void top(){
     int k;
     std::cin>>k;
-    std::priority_queue<idx_and_size> k_file;
-    for(auto [name,e]: v[curr_dir].children){
-        idx_and_size tmp;
+    std::priority_queue<idx_name_size> k_file;
+    for(const auto & [name,e]: v[curr_dir].children){
+        idx_name_size tmp;
         tmp.idx=e;
+        tmp.name=v[e].name;
         if(v[e].type==TXT){
             tmp.size = (std::get<std::string>(v[e].content)).length();
         }else if(v[e].type==MD){
@@ -438,14 +444,14 @@ void top(){
         }
     }
     
-    std::stack<idx_and_size> reversed_k_file;
+    std::stack<idx_name_size> reversed_k_file;
     while(!k_file.empty()){
-        idx_and_size cur = k_file.top();
+        idx_name_size cur = k_file.top();
         k_file.pop();
         reversed_k_file.push(cur);
     }
     while(!reversed_k_file.empty()){
-        idx_and_size cur = reversed_k_file.top();
+        idx_name_size cur = reversed_k_file.top();
         reversed_k_file.pop();
         std::cout<<v[cur.idx].name<<':'<<cur.size<<'\n';
     }
