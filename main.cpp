@@ -326,49 +326,29 @@ void write(){
     new_item.former_size=int(std::get<std::vector<uint8_t>>(v[find_it->second].content).size());
     new_item.modify_pos_start = offset;
     new_item.modify_pos_end = std::min(new_item.former_size,int(offset+(hexdata.length()+1)/3));
-
+    int new_bin_size = std::max(new_item.former_size,int(offset+(hexdata.length()+1)/3)); 
     if(new_item.modify_pos_end>new_item.modify_pos_start && offset<new_item.former_size){
         new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_start,std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_end);
     }
 
     undoable_history.push(std::move(new_item));
 
-    int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
-    if(bin_size<offset){
-        for(int i=bin_size;i<offset;++i){
-            std::get<std::vector<uint8_t>>(v[find_it->second].content).push_back(0);
-        }
-    }
-    bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
+    std::get<std::vector<uint8_t>>(v[find_it->second].content).resize(new_bin_size,0);
 
-    int cur_hex=0;
-    int one_finished=1;
-    int hexdata_len=hexdata.length();
-
-    int cur_idx = offset;
-    for(int i=0;i<hexdata_len;++i){
+    int add_cnt = (hexdata.length()+1)/3;
+    for(int i=0;i<add_cnt;++i){
         int tmp=0;
-        if(hexdata[i]>='0' && hexdata[i]<='9'){
-            tmp = int(hexdata[i]-'0');
-        }else if(hexdata[i]>='A' && hexdata[i]<='F'){
-            tmp = int(hexdata[i]-'A') +10;
-        }else{
-            continue;
+        if(hexdata[3*i]>='0' && hexdata[3*i]<='9'){
+            tmp = int(hexdata[3*i]-'0')*16;
+        }else if(hexdata[3*i]>='A' && hexdata[3*i]<='F'){
+            tmp = (int(hexdata[3*i]-'A') +10)*16;
         }
-        if(one_finished){
-            cur_hex+=16*tmp;
-            one_finished=0;
-        }else{
-            cur_hex+=tmp;
-            if(cur_idx<bin_size){
-                std::get<std::vector<uint8_t>>(v[find_it->second].content)[cur_idx]=cur_hex;
-            }else{
-                std::get<std::vector<uint8_t>>(v[find_it->second].content).push_back(cur_hex);
-            }
-            cur_hex=0;
-            one_finished=1;
-            cur_idx++;
+        if(hexdata[3*i+1]>='0' && hexdata[3*i+1]<='9'){
+            tmp += int(hexdata[3*i+1]-'0');
+        }else if(hexdata[3*i+1]>='A' && hexdata[3*i+1]<='F'){
+            tmp += (int(hexdata[3*i+1]-'A') +10);
         }
+        std::get<std::vector<uint8_t>>(v[find_it->second].content)[offset+i]=tmp;
     }
 }
 
