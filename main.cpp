@@ -47,6 +47,8 @@ struct undoable_item{
 
 std::stack<undoable_item> undoable_history;
 
+std::string hex_char="0123456789ABCDEF";
+
 int FindDir(const std::string & path) {
     int length = path.length();
     if(!length){
@@ -275,23 +277,18 @@ void read(){
         return;
     }
 
-    std::cout<<name<<':';
+    std::string out = name+":";
+    out.reserve(name.size() + 2 + 3 * length);
     for(int i=offset;i<offset+length;++i){
         int cur_int = (std::get<std::vector<uint8_t>>(v[find_it->second].content))[i];
         int first = cur_int/16;
         int second = cur_int%16;
-        if(first<10){
-            std::cout<<first;
-        }else{
-            std::cout<<char('A'+int(first-10));
-        }
-        if(second<10){
-            std::cout<<second<<" ";
-        }else{
-            std::cout<<char('A'+int(second-10))<<" ";
-        }
+        out+=hex_char[first];
+        out+=hex_char[second];
+        out+=" ";
     }
-    std::cout<<'\n';
+    out+='\n';
+    std::cout<<out;
 }
 
 void write(){
