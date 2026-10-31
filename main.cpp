@@ -4,8 +4,9 @@
 #include <optional>
 #include <map>
 #include <vector>
-#include <set>
+#include <cmath>
 #include <stack>
+#include <algorithm>
 
 enum Type { TXT, MD, BIN, DIR };
 
@@ -24,13 +25,11 @@ int curr_dir;
 struct idx_and_size{
     int idx;
     int size;
-};
-struct CompareSize{
-    bool operator()(const idx_and_size &i1,const idx_and_size &i2) const{
-       if(i1.size!=i2.size){
-        return i1.size>i2.size;
+    bool operator<(const idx_and_size &other) const{
+       if(size!=other.size){
+        return size>other.size;
        }else {
-        return v[i1.idx].name < v[i2.idx].name;
+        return v[idx].name < v[other.idx].name;
        }
     }
 };
@@ -426,7 +425,7 @@ void stat(){
 void top(){
     int k;
     std::cin>>k;
-    std::set<idx_and_size,CompareSize> s;
+    std::vector<idx_and_size> file_vec;
     for(auto [name,e]: v[curr_dir].children){
         idx_and_size tmp;
         tmp.idx=e;
@@ -439,12 +438,37 @@ void top(){
         }else if(v[e].type==DIR){
             continue;
         }
-        s.insert(tmp);
+        file_vec.push_back(tmp);
     }
-    int cur_top_cnt=0;
-    for(auto it = s.begin();it!=s.end() && cur_top_cnt<k;++it){
-        std::cout<<v[it->idx].name<<':'<<(it->size)<<'\n';
-        cur_top_cnt++;
+    // int cur_top_cnt=0;
+    // for(auto it = s.begin();it!=s.end() && cur_top_cnt<k;++it){
+    //     std::cout<<v[it->idx].name<<':'<<(it->size)<<'\n';
+    //     cur_top_cnt++;
+    // }
+    int file_vec_size = file_vec.size();
+    if(k>log(file_vec_size)/log(2)){
+        sort(file_vec.begin(),file_vec.end());
+        for(int i=0;i<file_vec_size && i<k;++i){
+            std::cout<<v[file_vec[i].idx].name<<':'<<file_vec[i].size<<'\n';
+        }
+    }else{
+        for(int i=0;i<k;++i){
+            bool flg=1;
+            for(int j=0;j<file_vec_size-1;++j){
+                if(file_vec[j]<file_vec[j+1]){
+                    idx_and_size tmp = file_vec[j+1];
+                    file_vec[j+1] = file_vec[j];
+                    file_vec[j] = tmp;
+                    flg=0;
+                }
+            }
+            if(flg){
+                break;
+            }
+        }
+        for(int i=file_vec_size-1;i>=file_vec_size-k;--i){
+            std::cout<<v[file_vec[i].idx].name<<':'<<file_vec[i].size<<'\n';
+        }
     }
 }
 
