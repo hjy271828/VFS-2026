@@ -193,10 +193,10 @@ void create(){
                 one_finished=1;
             }
         }
-        new_file.content=cur_content;
+        new_file.content=std::move(cur_content);
     }
     v[curr_dir].children.insert({name,v.size()});
-    v.push_back(new_file);
+    v.push_back(std::move(new_file));
 
     undoable_item new_item;
     new_item.type=CREATE;
