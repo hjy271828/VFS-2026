@@ -280,8 +280,9 @@ void read(){
 
     std::string out = name+":";
     out.reserve(name.size() + 2 + 3 * length);
+    auto & bin = std::get<std::vector<uint8_t>>(v[find_it->second].content);
     for(int i=offset;i<offset+length;++i){
-        int cur_int = (std::get<std::vector<uint8_t>>(v[find_it->second].content))[i];
+        int cur_int = bin[i];
         int first = cur_int/16;
         int second = cur_int%16;
         out+=hex_char[first];
@@ -334,6 +335,7 @@ void write(){
     std::get<std::vector<uint8_t>>(v[find_it->second].content).resize(new_bin_size,0);
 
     int add_cnt = (hexdata.length()+1)/3;
+    auto & bin = std::get<std::vector<uint8_t>>(v[find_it->second].content);
     for(int i=0;i<add_cnt;++i){
         int tmp=0;
         if(hexdata[3*i]>='0' && hexdata[3*i]<='9'){
@@ -346,7 +348,7 @@ void write(){
         }else if(hexdata[3*i+1]>='A' && hexdata[3*i+1]<='F'){
             tmp += (int(hexdata[3*i+1]-'A') +10);
         }
-        std::get<std::vector<uint8_t>>(v[find_it->second].content)[offset+i]=tmp;
+        bin[offset+i]=tmp;
     }
 }
 
@@ -480,8 +482,9 @@ void undo(){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
         std::get<std::vector<uint8_t>>(v[cur_idx].content).resize(cur_item.former_size);
+        auto & bin = std::get<std::vector<uint8_t>>(v[cur_idx].content);
         for(int i=cur_item.modify_pos_start;i<=cur_item.modify_pos_end-1 && i<=cur_item.former_size-1;++i){
-            std::get<std::vector<uint8_t>>(v[cur_idx].content)[i]=cur_item.former_content[i-cur_item.modify_pos_start];
+            bin[i]=cur_item.former_content[i-cur_item.modify_pos_start];
         }
     }else if(cur_type==RM){
         v[cur_idx].deleted=false;
