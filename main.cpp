@@ -331,7 +331,7 @@ void write(){
         new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_start,std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_end);
     }
 
-    undoable_history.push(new_item);
+    undoable_history.push(std::move(new_item));
 
     int bin_size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     if(bin_size<offset){
@@ -479,7 +479,7 @@ void undo(){
         std::cout<<"Invalid operation\n";
         return;
     }
-    undoable_item cur_item = undoable_history.top();
+    undoable_item cur_item = std::move(undoable_history.top());
     undoable_history.pop();
     Undoable_Type cur_type = cur_item.type;
     int cur_idx = cur_item.index;
