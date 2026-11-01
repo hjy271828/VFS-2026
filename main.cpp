@@ -1,13 +1,9 @@
 #include <cstdint>
 #include <iostream>
 #include <variant>
-#include <optional>
 #include <map>
 #include <vector>
 #include <stack>
-#include <algorithm>
-#include <queue>
-#include <cmath>
 #include <set>
 
 enum Type { TXT, MD, BIN, DIR };
@@ -47,8 +43,17 @@ struct undoable_item{
     int modify_pos_end; //not included
     int former_size;
 };
-
 std::stack<undoable_item> undoable_history;
+
+struct redoable_item{
+    Undoable_Type type;
+    int index;
+    std::variant<std::vector<uint8_t>,std::string> modified_content;
+    int modify_pos_start;
+    int modify_pos_end;
+    int size_after_modify;
+};
+std::stack<redoable_item> redoable_history;
 
 std::string hex_char="0123456789ABCDEF";
 
@@ -119,6 +124,10 @@ void mkdir(){
     new_item.type=MKDIR;
     new_item.index=v.size()-1;
     undoable_history.push(new_item);
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void cd(){
@@ -218,6 +227,10 @@ void create(){
     }
     v[new_item.index].size = size;
     v[curr_dir].size_rank.insert(new_item.index);
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void append(){
@@ -260,6 +273,10 @@ void append(){
     
     v[find_it->second].size = std::get<std::string>(v[find_it->second].content).size();
     v[curr_dir].size_rank.insert(find_it->second);
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void cat(){
@@ -349,7 +366,8 @@ void write(){
     new_item.modify_pos_end = std::min(new_item.former_size,int(offset+(hexdata.length()+1)/3));
     int new_bin_size = std::max(new_item.former_size,int(offset+(hexdata.length()+1)/3)); 
     if(new_item.modify_pos_end>new_item.modify_pos_start && offset<new_item.former_size){
-        new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_start,std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_end);
+        new_item.former_content.assign(std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_start,
+        std::get<std::vector<uint8_t>>(v[find_it->second].content).begin()+new_item.modify_pos_end);
     }
 
     undoable_history.push(std::move(new_item));
@@ -379,6 +397,10 @@ void write(){
     }
     v[find_it->second].size = std::get<std::vector<uint8_t>>(v[find_it->second].content).size();
     v[curr_dir].size_rank.insert(find_it->second);
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void ls(){
@@ -415,6 +437,10 @@ void rm(){
     v[find_it->second].deleted=true;
     v[curr_dir].children.erase(find_it);    
     v[curr_dir].size_rank.erase(find_it->second);
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void stat(){
@@ -464,13 +490,30 @@ void undo(){
     int cur_father = v[cur_idx].father;
     std::string cur_name = v[cur_idx].name;
     if(cur_type==MKDIR){
+        redoable_item new_redoable;
+        new_redoable.type = MKDIR;
+        new_redoable.index = cur_idx;
+        redoable_history.push(new_redoable);
+
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
     }else if(cur_type==CREATE){
+        redoable_item new_redoable;
+        new_redoable.type = CREATE;
+        new_redoable.index = cur_idx;
+        redoable_history.push(new_redoable);
+
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
         v[cur_father].size_rank.erase(cur_idx);
     }else if(cur_type==APPEND){
+        redoable_item new_redoable;
+        new_redoable.type = APPEND;
+        new_redoable.index = cur_idx;
+        std::get<std::string>(new_redoable.modified_content) 
+      = std::get<std::string>(v[cur_idx].content).substr(cur_item.modify_pos_start,v[cur_idx].size-cur_item.modify_pos_start);
+        redoable_history.push(new_redoable);
+
         std::get<std::string>(v[cur_idx].content).resize(cur_item.modify_pos_start);
         v[cur_father].size_rank.erase(cur_idx);
         v[cur_idx].size = std::get<std::string>(v[cur_idx].content).size();
@@ -478,6 +521,19 @@ void undo(){
     }else if(cur_type==CD){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
+        redoable_item new_redoable;
+        new_redoable.type = WRITE;
+        new_redoable.index = cur_idx;
+        new_redoable.modify_pos_start = cur_item.modify_pos_start;
+        if(v[cur_idx].size>cur_item.former_size){
+            new_redoable.modify_pos_end = v[cur_idx].size;
+        }else{
+            new_redoable.modify_pos_end = cur_item.modify_pos_end;
+        }
+        std::get<std::vector<uint8_t>>(new_redoable.modified_content).assign(std::get<std::vector<uint8_t>>(v[cur_idx].content).begin()+new_redoable.modify_pos_start,
+        std::get<std::vector<uint8_t>>(v[cur_idx].content).begin()+new_redoable.modify_pos_end);
+        redoable_history.push(new_redoable);
+        
         std::get<std::vector<uint8_t>>(v[cur_idx].content).resize(cur_item.former_size);
         auto & bin = std::get<std::vector<uint8_t>>(v[cur_idx].content);
         for(int i=cur_item.modify_pos_start;i<=cur_item.modify_pos_end-1 && i<=cur_item.former_size-1;++i){
@@ -487,12 +543,26 @@ void undo(){
         v[cur_idx].size = std::get<std::vector<uint8_t>>(v[cur_idx].content).size();
         v[cur_father].size_rank.insert(cur_idx);
     }else if(cur_type==RM){
+        redoable_item new_redoable;
+        new_redoable.type = RM;
+        new_redoable.index = cur_idx;
+        redoable_history.push(new_redoable);
+
         v[cur_idx].deleted=false;
         v[cur_father].children.insert({cur_name,cur_idx});
         v[cur_father].size_rank.insert(cur_idx);
     }
 }
 
+void redo(){
+    if(redoable_history.empty()){
+        std::cout<<"Invalid operation\n";
+        return;
+    }
+    redoable_item redo_item = redoable_history.top();
+    redoable_history.pop();
+    
+}
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
