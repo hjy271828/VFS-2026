@@ -1,0 +1,8 @@
+7
+create md a.md "a"
+create txt b.txt "abc"
+create bin c.bin "01 02"
+top 3
+undo
+top 3
+top 1

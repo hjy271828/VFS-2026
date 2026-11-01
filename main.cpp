@@ -8,14 +8,21 @@
 #include <algorithm>
 #include <queue>
 #include <cmath>
+#include <set>
 
 enum Type { TXT, MD, BIN, DIR };
+
+struct size_compare{
+    bool operator()(const int i1,const int i2) const;
+};
 
 struct Entry {
     std::string name;
     Type type;
+    int size;
     std::variant<std::string, std::vector<uint8_t>> content;
     std::map<std::string,int> children;
+    std::set <int,size_compare> size_rank; 
     int father;
     bool deleted=false;
 };
@@ -23,18 +30,13 @@ struct Entry {
 std::vector<Entry> v;
 int curr_dir;
 
-struct idx_name_size{
-    int idx;
-    std::string name;
-    int size;
-    bool operator<(const idx_name_size &other) const{
-       if(size!=other.size){
-        return size>other.size;
-       }else {
-        return name < other.name;
-       }
+bool size_compare::operator()(const int i1,const int i2) const{
+    if(v[i1].size!=v[i2].size){
+    return v[i1].size>v[i2].size;
+    }else {
+    return v[i1].name < v[i2].name;
     }
-};
+}
 
 enum Undoable_Type {MKDIR,CREATE,APPEND,CD,WRITE,RM};
 struct undoable_item{
@@ -205,6 +207,17 @@ void create(){
     new_item.type=CREATE;
     new_item.index=v.size()-1;
     undoable_history.push(new_item);
+
+    int size =0;
+    if(new_file.type==TXT){
+        size = (std::get<std::string>(v[new_item.index].content)).length();
+    }else if(new_file.type==MD){
+        size = (std::get<std::string>(v[new_item.index].content)).length();
+    }else if(new_file.type==BIN){
+        size = (std::get<std::vector<uint8_t>>(v[new_item.index].content)).size();
+    }
+    v[new_item.index].size = size;
+    v[curr_dir].size_rank.insert(new_item.index);
 }
 
 void append(){
@@ -238,6 +251,15 @@ void append(){
     undoable_history.push(new_item);
 
     std::get<std::string>(v[find_it->second].content).append(content);
+
+
+    auto find_it_in_rank = v[curr_dir].size_rank.find(find_it->second);
+    if(find_it_in_rank!=v[curr_dir].size_rank.end()){
+        v[curr_dir].size_rank.erase(find_it_in_rank);
+    }
+    
+    v[find_it->second].size = std::get<std::string>(v[find_it->second].content).size();
+    v[curr_dir].size_rank.insert(find_it->second);
 }
 
 void cat(){
@@ -350,6 +372,13 @@ void write(){
         }
         bin[offset+i]=tmp;
     }
+
+    auto find_it_in_rank = v[curr_dir].size_rank.find(find_it->second);
+    if(find_it_in_rank!=v[curr_dir].size_rank.end()){
+        v[curr_dir].size_rank.erase(find_it_in_rank);
+    }
+    v[find_it->second].size = std::get<std::vector<uint8_t>>(v[find_it->second].content).size();
+    v[curr_dir].size_rank.insert(find_it->second);
 }
 
 void ls(){
@@ -385,6 +414,7 @@ void rm(){
 
     v[find_it->second].deleted=true;
     v[curr_dir].children.erase(find_it);    
+    v[curr_dir].size_rank.erase(find_it->second);
 }
 
 void stat(){
@@ -419,43 +449,11 @@ void stat(){
 void top(){
     int k;
     std::cin>>k;
-    std::priority_queue<idx_name_size> k_file;
-    for(const auto & [name,e]: v[curr_dir].children){
-        idx_name_size tmp;
-        tmp.idx=e;
-        tmp.name=v[e].name;
-        if(v[e].type==TXT){
-            tmp.size = (std::get<std::string>(v[e].content)).length();
-        }else if(v[e].type==MD){
-            tmp.size = (std::get<std::string>(v[e].content)).length();
-        }else if(v[e].type==BIN){
-            tmp.size = (std::get<std::vector<uint8_t>>(v[e].content)).size();
-        }else if(v[e].type==DIR){
-            continue;
-        }
-        
-        if(k_file.size()<k){
-            k_file.push(tmp);
-        }else{
-            if(tmp<k_file.top()){
-                k_file.pop();
-                k_file.push(tmp);
-            }else{
-                continue;
-            }
-        }
-    }
-    
-    std::stack<idx_name_size> reversed_k_file;
-    while(!k_file.empty()){
-        idx_name_size cur = k_file.top();
-        k_file.pop();
-        reversed_k_file.push(cur);
-    }
-    while(!reversed_k_file.empty()){
-        idx_name_size cur = reversed_k_file.top();
-        reversed_k_file.pop();
-        std::cout<<v[cur.idx].name<<':'<<cur.size<<'\n';
+    int ouput_cnt =0;
+    auto & cur_dir_rank = v[curr_dir].size_rank;
+    for(auto it = cur_dir_rank.begin();it!=cur_dir_rank.end() && ouput_cnt<k;++it){
+        ++ouput_cnt;
+        std::cout<<v[(*it)].name<<':'<<v[(*it)].size<<'\n';
     }
 }
 
@@ -476,8 +474,12 @@ void undo(){
     }else if(cur_type==CREATE){
         v[cur_idx].deleted=true;
         v[cur_father].children.erase(cur_name);
+        v[cur_father].size_rank.erase(cur_idx);
     }else if(cur_type==APPEND){
         std::get<std::string>(v[cur_idx].content).resize(cur_item.modify_pos_start);
+        v[cur_father].size_rank.erase(cur_idx);
+        v[cur_idx].size = std::get<std::string>(v[cur_idx].content).size();
+        v[cur_father].size_rank.insert(cur_idx);
     }else if(cur_type==CD){
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
@@ -486,9 +488,13 @@ void undo(){
         for(int i=cur_item.modify_pos_start;i<=cur_item.modify_pos_end-1 && i<=cur_item.former_size-1;++i){
             bin[i]=cur_item.former_content[i-cur_item.modify_pos_start];
         }
+        v[cur_father].size_rank.erase(cur_idx);
+        v[cur_idx].size = std::get<std::vector<uint8_t>>(v[cur_idx].content).size();
+        v[cur_father].size_rank.insert(cur_idx);
     }else if(cur_type==RM){
         v[cur_idx].deleted=false;
         v[cur_father].children.insert({cur_name,cur_idx});
+        v[cur_father].size_rank.insert(cur_idx);
     }
 }
 
