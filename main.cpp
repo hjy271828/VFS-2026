@@ -19,7 +19,7 @@ struct size_compare{
 struct Entry {
     std::string name;
     Type type;
-    int size;
+    int size=0;
     std::variant<std::string, std::vector<uint8_t>> content;
     std::map<std::string,int> children;
     std::set <int,size_compare> size_rank; 
@@ -429,21 +429,16 @@ void stat(){
     Type its_type = v[find_it->second].type;
     std::cout<<name<<":";
 
-    int size =0;
     if(its_type==TXT){
         std::cout<<"txt:";
-        size = (std::get<std::string>(v[find_it->second].content)).length();
     }else if(its_type==MD){
         std::cout<<"md:";
-        size = (std::get<std::string>(v[find_it->second].content)).length();
     }else if(its_type==BIN){
         std::cout<<"bin:";
-        size = (std::get<std::vector<uint8_t>>(v[find_it->second].content)).size();
     }else if(its_type==DIR){
         std::cout<<"dir:";
-        size =0;
     }
-    std::cout<<size<<'\n';
+    std::cout<<v[find_it->second].size<<'\n';
 }
 
 void top(){
