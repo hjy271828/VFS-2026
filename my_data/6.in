@@ -1,10 +1,10 @@
-
+9
 mkdir a 
+create txt a.txt ""
 cd a 
 mkdir b 
-create txt a.txt ""
-cd b 
 create txt b.txt ""
+cd b 
 mkdir c
 cd ../..
 tree

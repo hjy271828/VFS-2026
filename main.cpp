@@ -702,31 +702,33 @@ const std::string I ="\xE2\x94\x82\x20\x20\x20";
 const std::string blanks = "\x20\x20\x20\x20";
 
 void print_tree(int cur_pos,std::string & head){
+    std::cerr<<"cur_pos:"<<cur_pos<<" head:"<<head<<'\n';
     std::cout<<v[cur_pos].name<<'\n';
     for(auto it = v[cur_pos].children.begin();it!=v[cur_pos].children.end();++it){
-        if(it==v[cur_pos].children.end()){
+        std::cout<<head;
+        if(it==std::prev(v[cur_pos].children.end())){
             std::cout<<L;
             if(v[it->second].type!=DIR){
                 std::cout<<(it->first)<<'\n';
-                return;
+                continue;
             }else{
                 head+=blanks;
                 cur_pos = it->second;
                 print_tree(cur_pos,head);
                 cur_pos = v[cur_pos].father;
-                head.resize(head.length()-4);
+                head.resize(head.length()-blanks.length());
             }
         }else{
             std::cout<<T;
             if(v[it->second].type!=DIR){
                 std::cout<<(it->first)<<'\n';
-                return;
+                continue;
             }else{
                 head+=I;
                 cur_pos = it->second;
                 print_tree(cur_pos,head);
                 cur_pos = v[cur_pos].father;
-                head.resize(head.length()-4);
+                head.resize(head.length()-I.length());
             }
         }
     }
