@@ -48,7 +48,7 @@ std::stack<undoable_item> undoable_history;
 struct redoable_item{
     Undoable_Type type;
     int index;
-    std::variant<std::vector<uint8_t>,std::string> modified_content;
+    std::variant<std::string,std::vector<uint8_t>> modified_content;
     int modify_pos_start;
     int modify_pos_end;
     int size_after_modify;
@@ -510,6 +510,7 @@ void undo(){
         redoable_item new_redoable;
         new_redoable.type = APPEND;
         new_redoable.index = cur_idx;
+        new_redoable.modify_pos_start = cur_item.modify_pos_start;
         std::get<std::string>(new_redoable.modified_content) 
       = std::get<std::string>(v[cur_idx].content).substr(cur_item.modify_pos_start,v[cur_idx].size-cur_item.modify_pos_start);
         redoable_history.push(new_redoable);
@@ -519,6 +520,11 @@ void undo(){
         v[cur_idx].size = std::get<std::string>(v[cur_idx].content).size();
         v[cur_father].size_rank.insert(cur_idx);
     }else if(cur_type==CD){
+        redoable_item new_redoable;
+        new_redoable.type = cur_type;
+        new_redoable.index = curr_dir;
+        redoable_history.push(new_redoable);
+
         curr_dir=cur_idx;
     }else if(cur_type==WRITE){
         redoable_item new_redoable;
@@ -561,7 +567,77 @@ void redo(){
     }
     redoable_item redo_item = redoable_history.top();
     redoable_history.pop();
-    
+    Undoable_Type cur_type = redo_item.type;
+    int cur_index = redo_item.index;
+    int cur_father = v[cur_index].father;
+    std::string cur_name = v[cur_index].name;
+    if(cur_type==MKDIR){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        undoable_history.push(new_undoable);
+
+        v[cur_index].deleted = false;
+        v[cur_father].children.insert({cur_name,cur_index});
+    }else if(cur_type == CREATE){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        undoable_history.push(new_undoable);
+
+        v[cur_index].deleted = false;
+        v[cur_father].children.insert({cur_name,cur_index});
+        v[cur_father].size_rank.insert(cur_index);
+    }else if(cur_type == APPEND){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        new_undoable.modify_pos_start = redo_item.modify_pos_start;
+        undoable_history.push(new_undoable);
+
+        (std::get<std::string>(v[cur_index].content)).append(std::get<std::string>(redo_item.modified_content));
+        v[cur_father].size_rank.erase(cur_index);
+        v[cur_index].size = std::get<std::string>(v[cur_index].content).size();
+        v[cur_father].size_rank.insert(cur_index);
+    }else if(cur_type == CD){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = curr_dir;
+        undoable_history.push(new_undoable);
+
+        curr_dir = redo_item.index;
+    }else if(cur_type == WRITE){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        auto & bin = std::get<std::vector<uint8_t>>(v[cur_index].content);
+        new_undoable.former_size = int(bin.size());
+        new_undoable.modify_pos_start = redo_item.modify_pos_start;
+        int new_bin_size = std::min(new_undoable.former_size,redo_item.modify_pos_end);
+        new_undoable.modify_pos_end = new_bin_size;
+        if(new_undoable.modify_pos_start<new_undoable.modify_pos_end){
+            new_undoable.former_content.assign(bin.begin()+new_undoable.modify_pos_start,
+            bin.begin()+new_undoable.modify_pos_end);
+        }
+        undoable_history.push(std::move(new_undoable));
+
+        bin.resize(new_bin_size,0);
+        for(int i=redo_item.modify_pos_start;i<redo_item.modify_pos_end;++i){
+            bin[i] = std::get<std::vector<uint8_t>>(redo_item.modified_content)[i-redo_item.modify_pos_start];
+        }
+        v[cur_father].size_rank.erase(cur_index);
+        v[cur_index].size = bin.size();
+        v[cur_father].size_rank.insert(cur_index);        
+    }else if(cur_type == RM){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        undoable_history.push(new_undoable);
+
+        v[cur_index].deleted = true;
+        v[cur_father].children.erase(cur_name);
+        v[cur_father].size_rank.erase(cur_index);
+    }
 }
 int main() {
     std::ios::sync_with_stdio(false);
@@ -602,6 +678,8 @@ int main() {
             top();
         }else if(operators=="undo"){
             undo();
+        }else if(operators=="redo"){
+            redo();
         }
     }
 }

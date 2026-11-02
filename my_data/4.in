@@ -1,0 +1,31 @@
+
+mkdir a
+cd a
+undo
+ls
+redo
+ls
+create txt b.txt "b"
+ls
+undo
+ls
+redo
+ls
+append b.txt "v"
+cat b.txt
+undo
+cat b.txt
+redo
+cat b.txt
+create bin c.bin "01 02"
+read c.bin 0 1
+write c.bin 0 "03"
+read c.bin 0 1
+undo 
+read c.bin 0 1
+redo
+read c.bin 0 1
+undo
+read c.bin 0 1
+redo
+read c.bin 0 1
