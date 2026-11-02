@@ -695,6 +695,48 @@ void redo(){
         }
     }
 }
+
+const std::string T = "\xE2\x94\x9C\xE2\x94\x80\xE2\x94\x80\x20";
+const std::string L = "\xE2\x94\x94\xE2\x94\x80\xE2\x94\x80\x20";
+const std::string I ="\xE2\x94\x82\x20\x20\x20";
+const std::string blanks = "\x20\x20\x20\x20";
+
+void print_tree(int cur_pos,std::string & head){
+    std::cout<<v[cur_pos].name<<'\n';
+    for(auto it = v[cur_pos].children.begin();it!=v[cur_pos].children.end();++it){
+        if(it==v[cur_pos].children.end()){
+            std::cout<<L;
+            if(v[it->second].type!=DIR){
+                std::cout<<(it->first)<<'\n';
+                return;
+            }else{
+                head+=blanks;
+                cur_pos = it->second;
+                print_tree(cur_pos,head);
+                cur_pos = v[cur_pos].father;
+                head.resize(head.length()-4);
+            }
+        }else{
+            std::cout<<T;
+            if(v[it->second].type!=DIR){
+                std::cout<<(it->first)<<'\n';
+                return;
+            }else{
+                head+=I;
+                cur_pos = it->second;
+                print_tree(cur_pos,head);
+                cur_pos = v[cur_pos].father;
+                head.resize(head.length()-4);
+            }
+        }
+    }
+}
+
+void tree(){
+    std::string head ="";    
+    print_tree(curr_dir,head);
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -736,6 +778,8 @@ int main() {
             undo();
         }else if(operators=="redo"){
             redo();
+        }else if(operators=="tree"){
+            tree();
         }
     }
 }
