@@ -146,6 +146,10 @@ void cd(){
 
     curr_dir = path_pos;
     // cerr<<"curr_dir: "<<curr_dir<<'\n';
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
 }
 
 void create(){
