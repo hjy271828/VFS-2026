@@ -435,8 +435,8 @@ void rm(){
     undoable_history.push(new_item);
 
     v[find_it->second].deleted=true;
-    v[curr_dir].children.erase(find_it);    
     v[curr_dir].size_rank.erase(find_it->second);
+    v[curr_dir].children.erase(find_it);    
 
     while(!redoable_history.empty()){
         redoable_history.pop();
