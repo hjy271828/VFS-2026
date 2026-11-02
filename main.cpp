@@ -675,7 +675,7 @@ void redo(){
         undoable_history.push(std::move(new_undoable));
 
         bin.resize(new_bin_size,0);
-        for(int i=redo_item.modify_pos_start;i<new_bin_size;++i){
+        for(int i=redo_item.modify_pos_start;i<redo_item.modify_pos_end;++i){
             bin[i] = std::get<std::vector<uint8_t>>(redo_item.modified_content)[i-redo_item.modify_pos_start];
         }
         v[cur_father].size_rank.erase(cur_index);
