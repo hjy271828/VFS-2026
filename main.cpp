@@ -34,7 +34,7 @@ bool size_compare::operator()(const int i1,const int i2) const{
     }
 }
 
-enum Undoable_Type {MKDIR,CREATE,APPEND,CD,WRITE,RM};
+enum Undoable_Type {MKDIR,CREATE,APPEND,CD,WRITE,RM,RM_R};
 struct undoable_item{
     Undoable_Type type;
     int index;
@@ -414,9 +414,15 @@ void ls(){
     std::cout<<out;
 }
 
+void rm_r();
+
 void rm(){
     std::string name;
     std::cin>>name;
+    if(name=="-r"){
+        rm_r();
+        return;
+    }
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
         std::cout<<"Invalid operation\n";
@@ -436,6 +442,33 @@ void rm(){
 
     v[find_it->second].deleted=true;
     v[curr_dir].size_rank.erase(find_it->second);
+    v[curr_dir].children.erase(find_it);    
+
+    while(!redoable_history.empty()){
+        redoable_history.pop();
+    }
+}
+
+void rm_r(){
+    std::string name;
+    std::cin>>name;
+    auto find_it = v[curr_dir].children.find(name);
+    if(find_it==v[curr_dir].children.end()){
+        std::cout<<"Invalid operation\n";
+        return;
+    }
+
+    Type its_type = v[find_it->second].type;
+
+    undoable_item new_item;
+    new_item.index=find_it->second;
+    new_item.type=RM_R;
+    undoable_history.push(new_item);
+
+    v[find_it->second].deleted=true;
+    if(its_type!=DIR){
+        v[curr_dir].size_rank.erase(find_it->second);
+    }
     v[curr_dir].children.erase(find_it);    
 
     while(!redoable_history.empty()){
@@ -558,6 +591,17 @@ void undo(){
         v[cur_idx].deleted=false;
         v[cur_father].children.insert({cur_name,cur_idx});
         v[cur_father].size_rank.insert(cur_idx);
+    }else if(cur_type==RM_R){
+        redoable_item new_redoable;
+        new_redoable.type = RM_R;
+        new_redoable.index = cur_idx;
+        redoable_history.push(new_redoable);
+
+        v[cur_idx].deleted=false;
+        v[cur_father].children.insert({cur_name,cur_idx});
+        if(cur_type!=DIR){
+            v[cur_father].size_rank.insert(cur_idx);
+        }
     }
 }
 
@@ -638,6 +682,17 @@ void redo(){
         v[cur_index].deleted = true;
         v[cur_father].children.erase(cur_name);
         v[cur_father].size_rank.erase(cur_index);
+    }else if(cur_type == RM_R){
+        undoable_item new_undoable;
+        new_undoable.type = cur_type;
+        new_undoable.index = cur_index;
+        undoable_history.push(new_undoable);
+
+        v[cur_index].deleted = true;
+        v[cur_father].children.erase(cur_name);
+        if(cur_type!=DIR){
+            v[cur_father].size_rank.erase(cur_index);
+        }
     }
 }
 int main() {
