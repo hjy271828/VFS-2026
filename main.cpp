@@ -414,15 +414,25 @@ void ls(){
     std::cout<<out;
 }
 
-void rm_r();
+void rm_r(const std::string & name);
 
 void rm(){
     std::string name;
     std::cin>>name;
     if(name=="-r"){
-        rm_r();
-        return;
+        std::string parsed;
+        std::getline(std::cin,parsed);
+        if(parsed.length()){
+            int first_place = parsed.find_first_not_of(" ");
+            int second_place = parsed.find_last_not_of(" ");
+            if(first_place!=std::string::npos && second_place!=std::string::npos){
+                name = parsed.substr(first_place,second_place-first_place+1);
+                rm_r(name);
+                return ;
+            }
+        }
     }
+
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
         std::cout<<"Invalid operation\n";
@@ -449,9 +459,7 @@ void rm(){
     }
 }
 
-void rm_r(){
-    std::string name;
-    std::cin>>name;
+void rm_r(const std::string &name){
     auto find_it = v[curr_dir].children.find(name);
     if(find_it==v[curr_dir].children.end()){
         std::cout<<"Invalid operation\n";

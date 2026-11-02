@@ -1,0 +1,5 @@
+4
+create txt -r ""
+ls
+rm -r
+ls
