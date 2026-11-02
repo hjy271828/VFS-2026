@@ -530,6 +530,7 @@ void undo(){
         redoable_item new_redoable;
         new_redoable.type = WRITE;
         new_redoable.index = cur_idx;
+        new_redoable.modified_content = std::vector<uint8_t>{};
         new_redoable.modify_pos_start = cur_item.modify_pos_start;
         if(v[cur_idx].size>cur_item.former_size){
             new_redoable.modify_pos_end = v[cur_idx].size;
@@ -597,7 +598,7 @@ void redo(){
 
         (std::get<std::string>(v[cur_index].content)).append(std::get<std::string>(redo_item.modified_content));
         v[cur_father].size_rank.erase(cur_index);
-        v[cur_index].size = std::get<std::string>(v[cur_index].content).size();
+        v[cur_index].size = std::get<std::string>(v[cur_index].content).length();
         v[cur_father].size_rank.insert(cur_index);
     }else if(cur_type == CD){
         undoable_item new_undoable;
@@ -613,8 +614,8 @@ void redo(){
         auto & bin = std::get<std::vector<uint8_t>>(v[cur_index].content);
         new_undoable.former_size = int(bin.size());
         new_undoable.modify_pos_start = redo_item.modify_pos_start;
-        int new_bin_size = std::min(new_undoable.former_size,redo_item.modify_pos_end);
-        new_undoable.modify_pos_end = new_bin_size;
+        int new_bin_size = std::max(new_undoable.former_size,redo_item.modify_pos_end);
+        new_undoable.modify_pos_end = std::min(new_undoable.former_size,redo_item.modify_pos_end);
         if(new_undoable.modify_pos_start<new_undoable.modify_pos_end){
             new_undoable.former_content.assign(bin.begin()+new_undoable.modify_pos_start,
             bin.begin()+new_undoable.modify_pos_end);
@@ -622,7 +623,7 @@ void redo(){
         undoable_history.push(std::move(new_undoable));
 
         bin.resize(new_bin_size,0);
-        for(int i=redo_item.modify_pos_start;i<redo_item.modify_pos_end;++i){
+        for(int i=redo_item.modify_pos_start;i<new_bin_size;++i){
             bin[i] = std::get<std::vector<uint8_t>>(redo_item.modified_content)[i-redo_item.modify_pos_start];
         }
         v[cur_father].size_rank.erase(cur_index);
