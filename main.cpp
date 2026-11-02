@@ -599,7 +599,7 @@ void undo(){
 
         v[cur_idx].deleted=false;
         v[cur_father].children.insert({cur_name,cur_idx});
-        if(cur_type!=DIR){
+        if(v[cur_idx].type!=DIR){
             v[cur_father].size_rank.insert(cur_idx);
         }
     }
@@ -690,7 +690,7 @@ void redo(){
 
         v[cur_index].deleted = true;
         v[cur_father].children.erase(cur_name);
-        if(cur_type!=DIR){
+        if(v[cur_index].type!=DIR){
             v[cur_father].size_rank.erase(cur_index);
         }
     }

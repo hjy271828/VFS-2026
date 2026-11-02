@@ -1,0 +1,14 @@
+13
+mkdir a 
+cd a 
+create txt a.txt "hello"
+cd ..
+rm -r a
+ls 
+undo
+ls
+cd a 
+ls
+cd ..
+redo
+ls
